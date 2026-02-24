@@ -491,18 +491,18 @@ end
 function PYATV.SendCommand (url) -- ORIGINAL: call_ip
 	dbg ("---Send Command---")
 	dbg ("URL: "..url)
-	C4:urlGet(url, {}, false,
-		function(ticketId, strData, responseCode, tHeaders, strError)
-			if (strError == nil) then
-				strData = strData or ''
-				responseCode = responseCode or 0
-				tHeaders = tHeaders or {}
-				if (responseCode == 0) then
-					print("FAILED retrieving: "..url.." Error: "..strError)
-				end
-				if (strData == "") then
-					print("FAILED -- No Data returned")
-				end
+		C4:urlGet(url, {}, false,
+			function(ticketId, strData, responseCode, tHeaders, strError)
+				if (strError == nil) then
+					strData = strData or ''
+					responseCode = responseCode or 0
+					tHeaders = tHeaders or {}
+					if (responseCode == 0) then
+						print("FAILED retrieving: "..url.." Error: unknown")
+					end
+					if (strData == "") then
+						print("FAILED -- No Data returned")
+					end
 				if (responseCode == 200) then
 					dbg ("SUCCESS retrieving: "..url.." Response: "..strData)
 				end
@@ -518,18 +518,18 @@ function PYATV.RemoteCommand (cmd) -- ORIGINAL: remote
 	dbg ("CMD: "..cmd)
 	url = Properties["Server IP"]..":"..Properties["Server Port"].."/remote_control/"..Properties["Device ID"].."/"..cmd
 	dbg ("URL: "..url)
-	C4:urlGet(url, {}, false,
-		function(ticketId, strData, responseCode, tHeaders, strError)
-			if (strError == nil) then
-				strData = strData or ''
-				responseCode = responseCode or 0
-				tHeaders = tHeaders or {}
-				if (responseCode == 0) then
-					print("FAILED retrieving: "..url.." Error: "..strError)
-				end
-				if (strData == "") then
-					print("FAILED -- No Data returned")
-				end
+		C4:urlGet(url, {}, false,
+			function(ticketId, strData, responseCode, tHeaders, strError)
+				if (strError == nil) then
+					strData = strData or ''
+					responseCode = responseCode or 0
+					tHeaders = tHeaders or {}
+					if (responseCode == 0) then
+						print("FAILED retrieving: "..url.." Error: unknown")
+					end
+					if (strData == "") then
+						print("FAILED -- No Data returned")
+					end
 				if (responseCode == 200) then
 					dbg ("SUCCESS retrieving: "..url.." Response: "..strData)
 				end
@@ -565,16 +565,16 @@ function PYATV.RemoteCommandHold (cmd,action) -- ORIGINAL: remote
 	
 	   C4:urlGet(url, {}, false,
 		    function(ticketId, strData, responseCode, tHeaders, strError)
-			    if (strError == nil) then
-				    strData = strData or ''
-				    responseCode = responseCode or 0
-				    tHeaders = tHeaders or {}
-				    if (responseCode == 0) then
-					    print("FAILED retrieving: "..url.." Error: "..strError)
-				    end
-				    if (strData == "") then
-					    print("FAILED -- No Data returned")
-				    end
+				    if (strError == nil) then
+					    strData = strData or ''
+					    responseCode = responseCode or 0
+					    tHeaders = tHeaders or {}
+					    if (responseCode == 0) then
+						    print("FAILED retrieving: "..url.." Error: unknown")
+					    end
+					    if (strData == "") then
+						    print("FAILED -- No Data returned")
+					    end
 				    if (responseCode == 200) then
 					    dbg ("SUCCESS retrieving: "..url.." Response: "..strData)
 				    end
@@ -611,15 +611,29 @@ function PYATV.MakeImageList(strData,array)
     	a = strData:match("',%s(.*)")
 	if (a ~= nil) then
 		b = a:match("',%s(.*)")
+		if (b == nil) then
+			dbg ("MakeImageList: unable to parse artwork stats (missing second segment)")
+			return
+		end
 		c,d = b:match("([^,]+),([^,]+)")
+		if (c == nil or d == nil) then
+			dbg ("MakeImageList: unable to parse artwork stats width/height")
+			return
+		end
 		d = d:sub(1, -2)
 		e = c:match("=(.*)")
 		f = d:match("=(.*)")
+		if (e == nil or f == nil) then
+			dbg ("MakeImageList: unable to parse artwork stats key/value pairs")
+			return
+		end
 		art_url = "http://"..Properties["Server IP"]..":"..Properties["Server Port"].."/art/"..Properties["Device ID"].."/art.png"
 		art_url = art_url.."?"..C4:Base64Encode(array["datetime"])
 		artwork_info["width"] = e
 		artwork_info["height"] = f
 		artwork_info["url"] = art_url
+	else
+		dbg ("MakeImageList: artwork stats payload did not match expected format")
      end
 
 end
