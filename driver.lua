@@ -1330,20 +1330,13 @@ end
 function MSP.ENTER (idBinding, strCommand, tParams, args)
 	local pytvCommand = CMDS [strCommand]
 	if (pytvCommand ~= nil) then
-		--PYATV.RemoteCommand (pytvCommand) -- Single Press vs. Hold determined by duration of END_ENTER
+		PYATV.RemoteCommand (pytvCommand)
 	end
 end
 
 function MSP.END_ENTER (idBinding, strCommand, tParams, args)
-	local pytvCommand = CMDS [strCommand]
-	if (pytvCommand ~= nil) then
-		  
-	     if (tonumber(tParams["DURATION"]) > tonumber(Properties["Button Hold Threshold"])) then
-		  PYATV.RemoteCommandHold (pytvCommand, "sendCmd")
-		else
-		  PYATV.RemoteCommand (pytvCommand)
-	     end
-	end
+	-- Intentionally ignored: the iOS Control4 app does not reliably send END_ENTER.
+	-- ENTER sends select immediately to avoid dropped presses.
 end
 
 function MSP.START_UP (idBinding, strCommand, tParams, args)
