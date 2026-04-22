@@ -28,7 +28,9 @@ do	--Globals
 		last_ws_connected_ms = 0,
 		last_launch_app_id = '',
 		last_launch_app_ms = 0,
-		current_app_id = ''
+		current_app_id = '',
+		pending_launch_token = 0,
+		pending_launch_app_id = ''
 	}
 
 	MSP_PROXY = 5001
@@ -249,6 +251,9 @@ function PYATV.ProcessData(data,source)
 	if (array["app"]) then
 		C4:SetVariable("Service", array["app_id"])
 		PYATV_RUNTIME.current_app_id = tostring(array["app_id"] or '')
+		if (PYATV_RUNTIME.pending_launch_app_id == PYATV_RUNTIME.current_app_id) then
+			PYATV_RUNTIME.pending_launch_app_id = ''
+		end
 	end
 	dbg ("---Polling Complete---")
 
@@ -449,6 +454,9 @@ function PYATV.LaunchApp (id)
 	end
 	PYATV_RUNTIME.last_launch_app_id = id
 	PYATV_RUNTIME.last_launch_app_ms = now
+	PYATV_RUNTIME.pending_launch_token = (tonumber(PYATV_RUNTIME.pending_launch_token) or 0) + 1
+	PYATV_RUNTIME.pending_launch_app_id = id
+	local launchToken = PYATV_RUNTIME.pending_launch_token
 	local url = Properties["Server IP"]..":"..Properties["Server Port"].."/launch_app/"..Properties["Device ID"].."/"..id
 	local inStartupWindow = now <= (PYATV_RUNTIME.startup_until or 0)
 	local delays = {0}
@@ -459,6 +467,15 @@ function PYATV.LaunchApp (id)
 		delays = {0, 600}
 	end
 	local function LaunchAttempt(attempt, total)
+		if (PYATV_RUNTIME.pending_launch_token ~= launchToken) or (PYATV_RUNTIME.pending_launch_app_id ~= id) then
+			dbg ("Skipping stale launch attempt "..attempt.."/"..total.." for app "..id)
+			return
+		end
+		if (PYATV_RUNTIME.current_app_id == id) then
+			dbg ("Skipping launch attempt "..attempt.."/"..total.." for app "..id.." because it is already active")
+			PYATV_RUNTIME.pending_launch_app_id = ''
+			return
+		end
 		dbg ("Launch attempt "..attempt.."/"..total.." for app "..id.." (startup="..tostring(inStartupWindow)..", ws="..tostring(PYATV_RUNTIME.ws_connected)..", apps="..tostring(PYATV_RUNTIME.app_list_ready)..")")
 		C4:urlGet(url, {}, false,
 			function(ticketId, strData, responseCode, tHeaders, strError)
