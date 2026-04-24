@@ -624,34 +624,35 @@ function PYATV.pollMediaInfo (source, navId, roomId, seq) --pollMediaInfo
 end
 
 function PYATV.MakeImageList(strData,array)
+		dbg ("MakeImageList: raw artwork stats payload: "..tostring(strData))
 
     	a = strData:match("',%s(.*)")
-	if (a ~= nil) then
-		b = a:match("',%s(.*)")
-		if (b == nil) then
-			dbg ("MakeImageList: unable to parse artwork stats (missing second segment)")
-			return
-		end
-		c,d = b:match("([^,]+),([^,]+)")
-		if (c == nil or d == nil) then
-			dbg ("MakeImageList: unable to parse artwork stats width/height")
-			return
-		end
-		d = d:sub(1, -2)
-		e = c:match("=(.*)")
-		f = d:match("=(.*)")
-		if (e == nil or f == nil) then
-			dbg ("MakeImageList: unable to parse artwork stats key/value pairs")
-			return
-		end
+		if (a ~= nil) then
+			b = a:match("',%s(.*)")
+			if (b == nil) then
+				dbg ("MakeImageList: unable to parse artwork stats (missing second segment): "..tostring(strData))
+				return
+			end
+			c,d = b:match("([^,]+),([^,]+)")
+			if (c == nil or d == nil) then
+				dbg ("MakeImageList: unable to parse artwork stats width/height: "..tostring(strData))
+				return
+			end
+			d = d:sub(1, -2)
+			e = c:match("=(.*)")
+			f = d:match("=(.*)")
+			if (e == nil or f == nil) then
+				dbg ("MakeImageList: unable to parse artwork stats key/value pairs: "..tostring(strData))
+				return
+			end
 		art_url = "http://"..Properties["Server IP"]..":"..Properties["Server Port"].."/art/"..Properties["Device ID"].."/art.png"
 		art_url = art_url.."?"..C4:Base64Encode(array["datetime"])
 		artwork_info["width"] = e
 		artwork_info["height"] = f
 		artwork_info["url"] = art_url
-	else
-		dbg ("MakeImageList: artwork stats payload did not match expected format")
-     end
+		else
+			dbg ("MakeImageList: artwork stats payload did not match expected format: "..tostring(strData))
+	     end
 
 end
 
