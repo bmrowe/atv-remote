@@ -471,7 +471,7 @@ function PYATV.LaunchApp (id)
 			dbg ("Skipping stale launch attempt "..attempt.."/"..total.." for app "..id)
 			return
 		end
-		if (PYATV_RUNTIME.current_app_id == id) then
+		if (attempt > 1 and PYATV_RUNTIME.current_app_id == id) then
 			dbg ("Skipping launch attempt "..attempt.."/"..total.." for app "..id.." because it is already active")
 			PYATV_RUNTIME.pending_launch_app_id = ''
 			return
@@ -1616,6 +1616,61 @@ function MakeImageList (iconInfo)
     
 end
 
+local function NormalizeMediaValue(value)
+	if (value == nil) then
+		return nil
+	end
+	value = tostring(value)
+	if (value == '' or value == 'none') then
+		return nil
+	end
+	return value
+end
+
+local function BuildEpisodeLabel(data)
+	local season = tonumber(data["season_number"])
+	local episode = tonumber(data["episode_number"])
+	if (season and episode) then
+		return string.format("S%d E%d", season, episode)
+	elseif (season) then
+		return string.format("Season %d", season)
+	elseif (episode) then
+		return string.format("Episode %d", episode)
+	end
+	return nil
+end
+
+local function BuildDisplayMetadata(data)
+	local title = NormalizeMediaValue(data["title"])
+	local album = NormalizeMediaValue(data["album"])
+	local artist = NormalizeMediaValue(data["artist"])
+	local genre = NormalizeMediaValue(data["genre"])
+	local seriesName = NormalizeMediaValue(data["series_name"])
+	local episodeLabel = BuildEpisodeLabel(data)
+	local subtitle = artist or episodeLabel
+
+	if (not title and seriesName) then
+		title = seriesName
+		if (NormalizeMediaValue(data["episode_title"])) then
+			subtitle = NormalizeMediaValue(data["episode_title"])
+		end
+	elseif (title and not album and seriesName and title ~= seriesName) then
+		album = seriesName
+	end
+
+	if (not subtitle and seriesName and title and title ~= seriesName) then
+		subtitle = seriesName
+	end
+
+	return {
+		title = title,
+		album = album,
+		artist = subtitle,
+		genre = genre,
+		episode = episodeLabel
+	}
+end
+
 function UpdateDashboard (data, isForced)
     -- These are all 5 of the Id values of the Transport items from the Dashboard section of the XML
     
@@ -1685,12 +1740,12 @@ end
 
 function UpdateMediaInfo (data, navId, roomId, seq)
     -- Updates the Now Playing area of the media bar and also the main section on the left of the Now Playing screen.  Doesn't affect the Queue side at all.
-    
+    local display = BuildDisplayMetadata(data)
     local args = {
-        TITLE = data["title"] or '',
-        ALBUM = data["album"] or '',
-        ARTIST = data["artist"] or '',
-        GENRE = data["genre"] or '',
+        TITLE = display["title"] or '',
+        ALBUM = display["album"] or '',
+        ARTIST = display["artist"] or '',
+        GENRE = display["genre"] or '',
         IMAGEURL = data["image"] --or C4:Base64Encode('controller://driver/atv-remote/icons/default_cover_art.png')
     }
     
@@ -1754,6 +1809,7 @@ function UpdateQueue (data, navId, roomId, seq)
 		print("UpdateQueue no data, exiting!")
 		return
 	end
+	local display = BuildDisplayMetadata(data)
     --prog = data["position"]
     local queue = {}
     duration = 0
@@ -1789,11 +1845,11 @@ function UpdateQueue (data, navId, roomId, seq)
     
 	if next(data) then
 	   i = 0
-	    if (data["title"] or data["artist"]) then
+	    if (display["title"] or display["artist"] or display["album"]) then
 		     i = i+1
 		     queue[i] = {title = 'Now Playing', isHeader = true}
 			i = i+1
-			queue[i] = {title = data["title"], subtitle = data["artist"], duration = duration, ImageUrl = data["imageURL"]}
+			queue[i] = {title = display["title"] or data["app"], subtitle = display["artist"] or display["album"], duration = duration, ImageUrl = data["ImageUrl"]}
 	    end
 	    
 	    if data["app"] then
